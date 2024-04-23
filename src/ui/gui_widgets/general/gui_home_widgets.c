@@ -50,6 +50,7 @@ static WalletState_t g_walletState[HOME_WALLET_CARD_BUTT] = {
     {HOME_WALLET_CARD_APT, false, "APT", true},
     {HOME_WALLET_CARD_SUI, false, "SUI", true},
     {HOME_WALLET_CARD_DASH, false, "DASH", true},
+    {HOME_WALLET_CARD_ARWEAVE, false, "AR", true},
     {HOME_WALLET_CARD_COSMOS, false, "Cosmos Eco", true},
     {HOME_WALLET_CARD_TIA, false, "TIA", true},
     {HOME_WALLET_CARD_DYM, false, "DYM", true},
@@ -85,6 +86,7 @@ static WalletState_t g_walletState[HOME_WALLET_CARD_BUTT] = {
     {HOME_WALLET_CARD_TGD, false, "TGD", true},
 };
 static WalletState_t g_walletBakState[HOME_WALLET_CARD_BUTT] = {0};
+static KeyboardWidget_t *g_keyboardWidget = NULL;
 
 static void GuiInitWalletState()
 {
@@ -173,6 +175,12 @@ static const ChainCoinCard_t g_coinCardArray[HOME_WALLET_CARD_BUTT] = {
         .coin = "DASH",
         .chain = "Dash",
         .icon = &coinDash,
+    },
+    {
+        .index = HOME_WALLET_CARD_ARWEAVE,
+        .coin = "AR",
+        .chain = "Arweave",
+        .icon = &coinAr,
     },
     {
         .index = HOME_WALLET_CARD_COSMOS,
@@ -496,11 +504,55 @@ static void CoinDealHandler(lv_event_t *e)
         case HOME_WALLET_CARD_ADA:
             GuiFrameOpenViewWithParam(&g_multiAccountsReceiveView, &coin, sizeof(coin));
             break;
+        case HOME_WALLET_CARD_ARWEAVE:
+        {
+            char *arXpub = GetCurrentAccountPublicKey(XPUB_TYPE_ARWEAVE);
+            bool shouldGenerateArweaveXPub = arXpub == NULL || strlen(arXpub) != 1024;
+            if (shouldGenerateArweaveXPub) {
+                g_keyboardWidget = GuiCreateKeyboardWidget(g_pageWidget->contentZone);
+                SetKeyboardWidgetSelf(g_keyboardWidget, &g_keyboardWidget);
+                static uint16_t sig = SIG_SETUP_RSA_PRIVATE_KEY_WITH_PASSWORD;
+                SetKeyboardWidgetSig(g_keyboardWidget, &sig);
+                break;
+            }
+            GuiFrameOpenViewWithParam(&g_standardReceiveView, &coin, sizeof(coin));
+            break;
+        }
         default:
             GuiFrameOpenViewWithParam(&g_standardReceiveView, &coin, sizeof(coin));
             break;
         }
     }
+}
+
+void GuiRemoveKeyboardWidget(void)
+{
+    if (g_keyboardWidget != NULL)
+    {
+        GuiDeleteKeyboardWidget(g_keyboardWidget);
+    }
+    GuiModelRsaGenerateKeyPair();
+}
+
+void RecalculateManageWalletState(void)
+{
+    WalletState_t walletState[HOME_WALLET_CARD_BUTT];
+    memcpy(walletState, g_walletState, sizeof(g_walletState));
+    AccountPublicHomeCoinGet(g_walletState, NUMBER_OF_ARRAYS(g_walletState));
+    AccountPublicHomeCoinSet(walletState, NUMBER_OF_ARRAYS(walletState));
+}
+
+void GuiContinueToReceiveArPage()
+{
+    ClearSecretCache();
+    int coinType = HOME_WALLET_CARD_ARWEAVE;
+    GuiFrameOpenViewWithParam(&g_standardReceiveView, &coinType, sizeof(coinType));
+}
+
+void GuiHomePasswordErrorCount(void *param)
+{
+    PasswordVerifyResult_t *passwordVerifyResult = (PasswordVerifyResult_t *)param;
+    GuiShowErrorNumber(g_keyboardWidget, passwordVerifyResult);
 }
 
 static void UpdateCosmosEnable(bool en)

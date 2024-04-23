@@ -3,11 +3,13 @@
 
 #include "rust.h"
 #include "gui_chain.h"
+#include "rsa.h"
 
 UREncodeResult *GuiGetBlueWalletBtcData(void);
 UREncodeResult *GuiGetSparrowWalletBtcData(void);
 #ifndef BTC_ONLY
 UREncodeResult *GuiGetKeplrData(void);
+UREncodeResult *GuiGetArConnectData(void);
 UREncodeResult *GuiGetCompanionAppData(void);
 #ifndef COMPILE_SIMULATOR
 UREncodeResult *GetMetamaskDataForAccountType(ETHAccountType accountType);
